@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TextifyVoice - Transcrição de Áudio com IA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+            background: #0a0a0a;
+            color: #e4e4e4;
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            position: relative;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(14, 99, 156, 0.1) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .hero-content {
+            max-width: 1400px;
+            width: 100%;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-text {
+            opacity: 0;
+            animation: fadeInLeft 1s ease forwards;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff, #58a6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-text p {
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            color: #a0a0a0;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #0e639c, #58a6ff);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(14, 99, 156, 0.3);
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(14, 99, 156, 0.4);
+        }
+
+        .cta-button img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .hero-image {
+            opacity: 0;
+            animation: fadeInRight 1s ease 0.3s forwards;
+            position: relative;
+        }
+
+        .screenshot-wrapper {
+            position: relative;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .window-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(30, 30, 30, 0.95);
+            border-radius: 16px 16px 0 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .window-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+        }
+
+        .window-dot:nth-child(1) { background: #ff5f57; }
+        .window-dot:nth-child(2) { background: #febc2e; }
+        .window-dot:nth-child(3) { background: #28c840; }
+
+        .window-dot:hover {
+            transform: scale(1.1);
+        }
+
+        .app-screenshot {
+            width: 100%;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.6),
+                0 0 80px rgba(14, 99, 156, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: none;
+            transition: transform 0.5s ease;
+            transform-style: preserve-3d;
+            display: block;
+        }
+
+        .screenshot-container {
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 
+                0 30px 80px rgba(0, 0, 0, 0.6),
+                0 0 80px rgba(14, 99, 156, 0.2);
+        }
+
+        .screenshot-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.3), rgba(14, 99, 156, 0.3));
+            border-radius: 18px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .screenshot-wrapper:hover::before {
+            opacity: 1;
+        }
+
+        /* Features Section */
+        .features {
+            padding: 6rem 2rem;
+            background: #0a0a0a;
+            position: relative;
+        }
+
+        .features-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .feature-card {
+            background: rgba(30, 30, 30, 0.6);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards;
+        }
+
+        .feature-card:nth-child(1) { animation-delay: 0.1s; }
+        .feature-card:nth-child(2) { animation-delay: 0.2s; }
+        .feature-card:nth-child(3) { animation-delay: 0.3s; }
+
+        .feature-card:hover {
+            background: rgba(30, 30, 30, 0.9);
+            border-color: rgba(88, 166, 255, 0.3);
+            transform: translateY(-8px);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+            filter: drop-shadow(0 0 20px rgba(88, 166, 255, 0.3));
+        }
+
+        .feature-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: #ffffff;
+        }
+
+        .feature-desc {
+            color: #a0a0a0;
+            line-height: 1.6;
+        }
+
+        /* Advanced Settings Showcase */
+        .advanced-section {
+            padding: 6rem 2rem;
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%);
+        }
+
+        .advanced-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .advanced-text h2 {
+            font-size: clamp(2rem, 4vw, 2.8rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .advanced-text p {
+            color: #a0a0a0;
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-list {
+            list-style: none;
+            margin-top: 2rem;
+        }
+
+        .feature-list li {
+            padding: 0.8rem 0;
+            color: #c9d1d9;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #0e639c, #58a6ff);
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .advanced-image {
+            position: relative;
+        }
+
+        .config-screenshot {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* How it Works */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: #0a0a0a;
+        }
+
+        .steps-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            margin-top: 3rem;
+        }
+
+        .step {
+            text-align: center;
+            opacity: 0;
+            animation: fadeInUp 1s ease forwards;
+        }
+
+        .step:nth-child(1) { animation-delay: 0.2s; }
+        .step:nth-child(2) { animation-delay: 0.4s; }
+        .step:nth-child(3) { animation-delay: 0.6s; }
+
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0e639c, #58a6ff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 30px rgba(14, 99, 156, 0.3);
+        }
+
+        .step h3 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .step p {
+            color: #a0a0a0;
+            line-height: 1.6;
+        }
+
+        /* Download CTA */
+        .download-cta {
+            padding: 6rem 2rem;
+            background: linear-gradient(135deg, #0e639c, #1a1a2e);
+            text-align: center;
+        }
+
+        .download-cta h2 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .download-cta p {
+            font-size: 1.2rem;
+            color: #c9d1d9;
+            margin-bottom: 2rem;
+        }
+
+        .download-buttons {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .download-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.2rem 2rem;
+            background: white;
+            color: #0e639c;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            min-width: 280px;
+        }
+
+        .download-button:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .download-button svg {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+        }
+
+        .download-button img {
+            width: 40px;
+            height: 40px;
+            flex-shrink: 0;
+        }
+
+        .download-button > div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .platform-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .platform-info {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: #666;
+            display: block;
+        }
+
+        .system-requirements {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .hero-content,
+            .advanced-container {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+
+            .hero-image {
+                order: -1;
+            }
+
+            .feature-list li {
+                font-size: 0.95rem;
+            }
+
+            .download-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .download-button {
+                width: 100%;
+                max-width: 320px;
+            }
+
+            .hero-buttons {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .hero {
+                padding: 1rem;
+            }
+
+            .features,
+            .advanced-section,
+            .how-it-works,
+            .download-cta {
+                padding: 3rem 1rem;
+            }
+
+            .steps-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .download-button {
+                min-width: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>TextifyVoice</h1>
+                <p>Transforme áudio e vídeo em texto com precisão profissional usando Inteligência Artificial. Simples, rápido e configurável.</p>
+                <div class="hero-buttons">
+                    <a href="#download" class="cta-button">
+                        <img src="icons/windows.png" alt="Windows">
+                        Windows
+                    </a>
+                    <a href="#download" class="cta-button">
+                        <img src="icons/mac.png" alt="Linux">
+                        Mac
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="screenshot-wrapper">
+                    <div class="screenshot-container">
+                        <div class="window-header">
+                            <div class="window-dot"></div>
+                            <div class="window-dot"></div>
+                            <div class="window-dot"></div>
+                        </div>
+                        <img src="./icons/telaInicial.png" alt="Interface do TextifyVoice" class="app-screenshot">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="features-container">
+            <h2 class="section-title">Por que escolher o TextifyVoice?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">🎙️</span>
+                    <h3 class="feature-title">Interface Simples</h3>
+                    <p class="feature-desc">Arraste seus arquivos de áudio ou vídeo e comece a transcrever em segundos. Interface limpa e intuitiva.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon">⚡</span>
+                    <h3 class="feature-title">Processamento Local</h3>
+                    <p class="feature-desc">Seus arquivos nunca saem do seu computador. Privacidade total e processamento offline com IA local.</p>
+                </div>
+
+                <div class="feature-card">
+                    <span class="feature-icon">🎯</span>
+                    <h3 class="feature-title">Alta Precisão</h3>
+                    <p class="feature-desc">Powered by Whisper AI da OpenAI, garantindo transcrições precisas mesmo em áudios com ruídos.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Advanced Settings Section -->
+    <section class="advanced-section">
+        <div class="advanced-container">
+            <div class="advanced-text">
+                <h2>Configurações Avançadas para Profissionais</h2>
+                <p>Personalize cada detalhe da sua transcrição com configurações avançadas que atendem desde estudantes até profissionais de audiovisual.</p>
+                
+                <ul class="feature-list">
+                    <li>Múltiplos formatos de saída (DOCX, TXT, SRT, VTT, JSON)</li>
+                    <li>Timestamps configuráveis por segmento, palavra ou parágrafo</li>
+                    <li>Identificação automática de falantes (diarização)</li>
+                    <li>Pontuação e capitalização inteligente</li>
+                    <li>Presets prontos para aulas, entrevistas, reuniões e podcasts</li>
+                    <li>Controle de qualidade vs velocidade de processamento</li>
+                </ul>
+            </div>
+            <div class="advanced-image">
+                <img src="./icons/configuracao.png" alt="Janela de Configurações Avançadas" class="config-screenshot">
+            </div>
+        </div>
+    </section>
+
+    <!-- How it Works -->
+    <section class="how-it-works">
+        <div class="steps-container">
+            <h2 class="section-title">Como Funciona</h2>
+            <div class="steps-grid">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Selecione o Modelo</h3>
+                    <p>Escolha a qualidade do modelo de IA (small, medium, large) conforme sua necessidade</p>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Configure (Opcional)</h3>
+                    <p>Escolha um preset ou ajuste manualmente formato, timestamps e outras opções</p>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Selecione o Arquivo</h3>
+                    <p>Clique em "Selecionar Arquivos" ou arraste seu áudio/vídeo para a interface</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download CTA -->
+    <section class="download-cta" id="download">
+        <h2>Pronto para começar?</h2>
+        <p>Baixe o TextifyVoice e transforme seus áudios em texto profissional</p>
+        
+        <div class="download-buttons">
+            <a href="#" class="download-button">
+                <img src="icons/windows.png" alt="Windows Icon">
+                <div>
+                    <span class="platform-name">Windows</span>
+                </div>
+            </a>
+            
+            <a href="#" class="download-button">
+                <img src="icons/mac.png" alt="Linux Icon">
+                <div>
+                    <span class="platform-name">Mac</span>
+                </div>
+            </a>
+        </div>
+        
+        <p class="system-requirements">
+            Requisitos mínimos: 4GB RAM • 2GB espaço em disco • Processador dual-core
+        </p>
+    </section>
+
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Efeito parallax 3D no mouse move para hero image (SUAVIZADO)
+        const screenshotWrapper = document.querySelector('.screenshot-wrapper');
+        const screenshotContainer = document.querySelector('.screenshot-container');
+        
+        if (screenshotWrapper && screenshotContainer) {
+            document.addEventListener('mousemove', (e) => {
+                const rect = screenshotWrapper.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Verifica se o mouse está sobre a imagem
+                if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    
+                    // Reduzido de 10 para 5 para movimento mais suave
+                    const rotateX = (y - centerY) / centerY * 5;
+                    const rotateY = (x - centerX) / centerX * 5;
+                    
+                    screenshotContainer.style.transform = `
+                        translateY(-5px) 
+                        rotateX(${-rotateX}deg) 
+                        rotateY(${rotateY}deg)
+                        scale(1.01)
+                    `;
+                }
+            });
+            
+            screenshotWrapper.addEventListener('mouseleave', () => {
+                screenshotContainer.style.transform = 'translateY(0) rotateX(0) rotateY(0) scale(1)';
+            });
+        }
+
+        // Intersection Observer para animações ao scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -100px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .step').forEach(el => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
